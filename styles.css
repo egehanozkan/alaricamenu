@@ -1,0 +1,751 @@
+html {
+    scroll-behavior: smooth;
+}
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --coffee-50: #faf7f2;
+    --coffee-100: #f5ede5;
+    --coffee-200: #e8d5c4;
+    --coffee-300: #dab5a0;
+    --coffee-400: #c9927d;
+    --coffee-500: #b8705a;
+    --coffee-600: #8b5a47;
+    --coffee-700: #6d463a;
+    --coffee-800: #56372d;
+    --coffee-900: #442b23;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    background-color: var(--coffee-50);
+    color: var(--coffee-900);
+    line-height: 1.6;
+}
+
+/* Navigation */
+.navbar {
+    background-color: var(--coffee-800);
+    color: white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.nav-container {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 1rem;
+}
+
+.nav-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 0;
+}
+
+.nav-title {
+    font-size: 1.875rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: color 0.3s ease;
+}
+
+.nav-title:hover {
+    color: var(--coffee-200);
+}
+
+.nav-links {
+    display: flex;
+    gap: 1rem;
+}
+
+.nav-link {
+    color: white;
+    text-decoration: none;
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
+    transition: background-color 0.3s ease;
+}
+
+.nav-link:hover,
+.nav-link.active {
+    background-color: var(--coffee-600);
+}
+
+/* Hero Section */
+.hero {
+    background: linear-gradient(to bottom right, var(--coffee-50), var(--coffee-100));
+    padding: 5rem 1rem;
+}
+
+.hero-container {
+    max-width: 1280px;
+    margin: 0 auto;
+}
+
+.hero-content {
+    text-align: center;
+}
+
+.hero-title {
+    font-size: 3rem;
+    font-weight: bold;
+    color: var(--coffee-900);
+    margin-bottom: 1rem;
+}
+
+.hero-subtitle {
+    font-size: 1.25rem;
+    color: var(--coffee-700);
+    margin-bottom: 2rem;
+}
+
+/* Buttons */
+.button {
+    display: inline-block;
+    padding: 0.75rem 2rem;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 1rem;
+}
+
+.button-primary {
+    background-color: var(--coffee-600);
+    color: white;
+}
+
+.button-primary:hover {
+    background-color: var(--coffee-700);
+}
+
+.button-secondary {
+    background-color: #9ca3af;
+    color: white;
+}
+
+.button-secondary:hover {
+    background-color: #6b7280;
+}
+
+.button-small {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+}
+
+/* Features Section */
+.features {
+    background: white;
+    padding: 4rem 1rem;
+}
+
+.features-container {
+    max-width: 1280px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+}
+
+.feature-card {
+    text-align: center;
+    padding: 2rem;
+}
+
+.feature-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+.feature-card h3 {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+    color: var(--coffee-900);
+}
+
+.feature-card p {
+    color: var(--coffee-700);
+}
+
+/* Menu Page */
+.menu-page {
+    padding: 3rem 1rem;
+}
+
+.menu-container {
+    max-width: 1280px;
+    margin: 0 auto;
+}
+
+.menu-header {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.menu-header h1 {
+    font-size: 2.25rem;
+    font-weight: bold;
+    color: var(--coffee-900);
+    margin-bottom: 0.5rem;
+}
+
+.menu-header p {
+    font-size: 1.125rem;
+    color: var(--coffee-700);
+}
+
+/* Category Filter */
+.category-filter {
+    display: flex;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-bottom: 3rem;
+    flex-wrap: wrap;
+}
+
+.filter-btn {
+    padding: 0.5rem 1.5rem;
+    border-radius: 9999px;
+    font-weight: 600;
+    border: 2px solid var(--coffee-200);
+    background-color: white;
+    color: var(--coffee-700);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.filter-btn:hover,
+.filter-btn.active {
+    background-color: var(--coffee-600);
+    color: white;
+    border-color: var(--coffee-600);
+}
+
+/* Menu Grid */
+.menu-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 2rem;
+}
+
+.menu-item {
+    background-color: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    transition: box-shadow 0.3s ease;
+}
+
+.menu-item:hover {
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+}
+
+.menu-item-image {
+    background: linear-gradient(to right, var(--coffee-600), var(--coffee-700));
+    height: 8rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3rem;
+}
+
+.menu-item-content {
+    padding: 1.5rem;
+}
+
+.menu-item-name {
+    font-size: 1.25rem;
+    font-weight: bold;
+    color: var(--coffee-900);
+    margin-bottom: 0.5rem;
+}
+
+.menu-item-description {
+    color: var(--coffee-600);
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+}
+
+.menu-item-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.menu-item-price {
+    font-size: 1.875rem;
+    font-weight: bold;
+    color: var(--coffee-600);
+}
+
+.menu-item-category {
+    font-size: 0.75rem;
+    background-color: var(--coffee-100);
+    color: var(--coffee-700);
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+}
+
+.no-items {
+    text-align: center;
+    color: var(--coffee-700);
+    padding: 3rem 1rem;
+    font-size: 1.125rem;
+}
+
+/* Admin Page */
+.admin-page {
+    padding: 3rem 1rem;
+}
+
+.admin-container {
+    max-width: 1280px;
+    margin: 0 auto;
+}
+
+.admin-container h1 {
+    font-size: 2.25rem;
+    font-weight: bold;
+    color: var(--coffee-900);
+    margin-bottom: 3rem;
+}
+
+.admin-grid {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 2rem;
+}
+
+@media (max-width: 1024px) {
+    .admin-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-form-section {
+        order: 2;
+    }
+
+    .admin-items-section {
+        order: 1;
+    }
+}
+
+/* Form Styles */
+.form-card,
+.items-card {
+    background-color: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    padding: 2rem;
+}
+
+.form-card h2,
+.items-card h2 {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--coffee-900);
+    margin-bottom: 1.5rem;
+}
+
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-group label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--coffee-900);
+    margin-bottom: 0.5rem;
+}
+
+.form-group input,
+.form-group textarea,
+.form-group select {
+    width: 100%;
+    padding: 0.5rem 1rem;
+    border: 2px solid var(--coffee-200);
+    border-radius: 0.375rem;
+    font-size: 1rem;
+    transition: border-color 0.3s ease;
+}
+
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: var(--coffee-600);
+}
+
+.form-buttons {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 2rem;
+}
+
+.form-buttons .button {
+    flex: 1;
+}
+
+/* Items List */
+.items-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.item-row {
+    border: 2px solid var(--coffee-100);
+    border-radius: 0.375rem;
+    padding: 1rem;
+    transition: border-color 0.3s ease;
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+}
+
+.item-row:hover {
+    border-color: var(--coffee-300);
+}
+
+.item-row-image {
+    flex-shrink: 0;
+    width: 100px;
+    height: 100px;
+    border-radius: 0.375rem;
+    overflow: hidden;
+    background-color: var(--coffee-100);
+}
+
+.item-row-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex: 1;
+}
+
+.item-title-section {
+    flex: 1;
+}
+
+.item-name {
+    font-size: 1.125rem;
+    font-weight: bold;
+    color: var(--coffee-900);
+}
+
+.item-desc {
+    color: var(--coffee-600);
+    font-size: 0.875rem;
+}
+
+.item-right {
+    text-align: right;
+}
+
+.item-price {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--coffee-600);
+}
+
+.item-category-tag {
+    font-size: 0.75rem;
+    background-color: var(--coffee-100);
+    color: var(--coffee-700);
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    display: inline-block;
+    margin-top: 0.25rem;
+}
+
+.item-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+}
+
+.action-btn {
+    padding: 0.375rem 1rem;
+    border: none;
+    border-radius: 0.375rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 0.875rem;
+    transition: all 0.3s ease;
+}
+
+.action-btn.edit {
+    background-color: #3b82f6;
+    color: white;
+}
+
+.action-btn.edit:hover {
+    background-color: #2563eb;
+}
+
+.action-btn.delete {
+    background-color: #ef4444;
+    color: white;
+}
+
+.action-btn.delete:hover {
+    background-color: #dc2626;
+}
+
+/* Admin Login */
+.admin-login {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(to bottom right, var(--coffee-50), var(--coffee-100));
+    padding: 1rem;
+}
+
+.login-container {
+    width: 100%;
+    max-width: 400px;
+}
+
+.login-card {
+    background-color: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    padding: 3rem 2rem;
+    text-align: center;
+}
+
+.login-card h1 {
+    font-size: 2rem;
+    font-weight: bold;
+    color: var(--coffee-900);
+    margin-bottom: 0.5rem;
+}
+
+.login-subtitle {
+    color: var(--coffee-700);
+    margin-bottom: 2rem;
+    font-size: 0.95rem;
+}
+
+.login-form .form-group {
+    margin-bottom: 1.5rem;
+    text-align: left;
+}
+
+.login-error {
+    animation: shake 0.5s ease-in-out;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-10px); }
+    75% { transform: translateX(10px); }
+}
+
+.admin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 3rem;
+}
+
+.admin-header h1 {
+    font-size: 2.25rem;
+    font-weight: bold;
+    color: var(--coffee-900);
+}
+
+/* Responsive */
+
+@media (max-width: 768px) {
+    .hero-title {
+        font-size: 2rem;
+    }
+
+    .menu-header h1 {
+        font-size: 1.875rem;
+    }
+
+    .nav-links {
+        gap: 0.5rem;
+    }
+
+    .nav-link {
+        padding: 0.5rem;
+        font-size: 0.875rem;
+    }
+
+    .menu-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* --- YUKARI ÇIK BUTONU --- */
+#scrollToTopBtn {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    background-color: #8b4513; /* Alarica temasına uygun kahverengi */
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    font-size: 24px;
+    cursor: pointer;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    display: none; /* Sayfa en üstteyken gizli durur */
+    justify-content: center;
+    align-items: center;
+    z-index: 9999; /* Her şeyin üstünde durmasını sağlar */
+    transition: all 0.3s ease;
+}
+
+#scrollToTopBtn:hover {
+    background-color: #6b340e;
+    transform: scale(1.1); /* Fare üzerine gelince hafifçe büyür */
+}
+
+/* ==========================================
+   MOBİL UYARLAMA (RESPONSIVE DESIGN)
+   ========================================== */
+
+/* Resimlerin hiçbir zaman ekranı taşırmamasını garanti edelim */
+img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+}
+
+/* Tabletler ve Telefonlar İçin (768px ve altı ekranlar) */
+@media (max-width: 768px) {
+    /* Navbar (Üst Menü) Düzenlemesi */
+    .nav-content {
+        flex-direction: column !important; /* Logoyu ve linkleri alt alta alır */
+        text-align: center;
+        gap: 15px;
+        padding: 10px 0;
+    }
+    
+    .nav-links {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 10px;
+    }
+
+    .nav-link {
+        padding: 5px 10px;
+        font-size: 0.9rem;
+    }
+
+    /* Kategori Butonları Düzenlemesi */
+    .category-filter {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 8px; /* Butonlar arasına boşluk */
+        margin-bottom: 20px;
+    }
+
+    .filter-btn {
+        margin: 0 !important; /* JS'den gelen margin'i eziyoruz */
+        font-size: 0.85rem !important;
+        padding: 6px 12px !important;
+    }
+
+    /* Admin Paneli Düzenlemesi (Form ve liste yan yanaysa alt alta alır) */
+    .admin-grid {
+        display: grid;
+        grid-template-columns: 1fr !important; /* Tek sütun yapar */
+        gap: 20px;
+    }
+
+    /* Hero Bölümü (Ana Sayfa) Düzenlemesi */
+    .hero-title {
+        font-size: 2rem !important; /* Başlığı telefonda biraz küçültür */
+    }
+
+    .hero-subtitle {
+        font-size: 1rem !important;
+    }
+
+    .features-container {
+        display: grid;
+        grid-template-columns: 1fr !important; /* Özellik kartlarını alt alta dizer */
+        gap: 20px;
+    }
+}
+
+/* Dar Ekranlı Telefonlar İçin (480px ve altı) */
+@media (max-width: 480px) {
+    /* Menü Kartlarını telefonda YAN YANA İKİ TANE yapalım */
+    #menuGrid {
+        grid-template-columns: 1fr 1fr !important; /* JS'deki sınırları ezip İKİ SÜTUN yapar */
+        gap: 10px !important; /* Aralarındaki boşluğu biraz daralttık ki sığsınlar */
+    }
+    
+    /* 2 ürün yan yana olunca resimler dev gibi kalmasın diye boylarını kısaltıyoruz */
+    .menu-item-card img, 
+    .menu-item-card > div:first-child {
+        height: 120px !important;
+    }
+
+    /* Yazıların etrafındaki boşlukları (padding) daraltıyoruz */
+    .menu-item-card > div:nth-child(2) {
+        padding: 10px !important;
+    }
+
+    /* Ürün Adı ve Fiyatı biraz küçültelim ki alt satıra taşıp kartı bozmasın */
+    .menu-item-card h3 {
+        font-size: 0.95rem !important;
+    }
+    .menu-item-card > div:nth-child(2) > div > span {
+        font-size: 0.9rem !important;
+    }
+
+    /* Açıklama yazısı (description) */
+    .menu-item-card p {
+        font-size: 0.75rem !important;
+        margin-bottom: 10px !important;
+        line-height: 1.3 !important;
+    }
+
+    /* Kategori etiketi */
+    .menu-item-card > div:nth-child(2) > span {
+        font-size: 0.7rem !important;
+        padding: 2px 6px !important;
+    }
+
+    /* Yukarı Çık Butonunu mobilde biraz küçültelim */
+    #scrollToTopBtn {
+        width: 40px;
+        height: 40px;
+        font-size: 18px;
+        bottom: 20px;
+        right: 20px;
+    }
+}

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Menümüz</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-content">
+                <h1 class="nav-title">☕ Alarica</h1>
+                <div class="nav-links">
+                    <a href="index.html" class="nav-link">Anasayfa</a>
+                    <a href="menu.html" class="nav-link active">Menü</a>
+                    <a href="admin.html" class="nav-link admin-link" style="display: none;">Admin</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Menu Section -->
+    <div class="menu-page">
+        <div class="menu-container">
+            <div class="menu-header">
+                <h1>Menümüz</h1>
+                <p>Elle seçilmiş ve uzman baristalar tarafından hazırlanmış kahve ve tatlılar</p>
+            </div>
+
+            <!-- Category Filter -->
+            <div class="category-filter" id="categoryFilter">
+                <button class="filter-btn active" data-category="all">Tümü</button>
+            </div>
+
+            <!-- Menu Items Grid -->
+            <div class="menu-grid" id="menuGrid">
+                <!-- Items will be loaded here by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
