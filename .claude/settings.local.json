@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(firebase init:*)",
+      "Bash(1:*)",
+      "Bash(firebase deploy:*)"
+    ]
+  }
+}

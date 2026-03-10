@@ -52,12 +52,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- ORTAK DURUM (STATE) DEĞİŞKENLERİ ---
     let menuItems = [];
+    let categories = [];
     let currentEditingId = null;
+    let currentEditingCategoryId = null;
     let currentImageFile = null;       // Yüklenecek dosya
     let currentImagePreviewUrl = '';   // Önizleme için URL (yeni dosya veya mevcut URL)
 
-    // Firestore referansı
+    // Firestore referansları
     const menuCollection = db.collection('menuItems');
+    const categoriesCollection = db.collection('categories');
 
     // --- ADMIN LİNKİNİ GİZLE/GÖSTER (Tüm sayfalar için) ---
     const adminLinks = document.querySelectorAll('.admin-link');
@@ -67,8 +70,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (user) {
             adminLinks.forEach(link => link.style.display = 'inline-block');
             // Admin giriş yaptığında Firestore boşsa seed data'yı yükle
+            await seedCategoriesIfEmpty();
             await seedFirestoreIfEmpty();
             // Veriyi Firestore'dan tekrar yükle (seed sonrası güncel veri)
+            await loadCategories();
             await loadMenuItems();
             // Admin sayfasındaysak paneli göster
             if (loginDiv && panelDiv) {
@@ -83,6 +88,217 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     });
+
+    // ==========================================
+    // KATEGORİ YÖNETİMİ
+    // ==========================================
+    const initialCategories = [
+        { name: "Kendin Seç Waffle", order: 0 },
+        { name: "Croissant", order: 1 },
+        { name: "İmza Tatlılar", order: 2 },
+        { name: "Tatlılar", order: 3 },
+        { name: "Matcha", order: 4 },
+        { name: "Çaylar", order: 5 },
+        { name: "Hot Coffee", order: 6 },
+        { name: "Iced Coffee", order: 7 },
+        { name: "Sıcaklar", order: 8 },
+        { name: "Soğuklar", order: 9 }
+    ];
+
+    async function loadCategories() {
+        console.log('[loadCategories] Başlatılıyor...');
+        try {
+            const snapshot = await categoriesCollection.orderBy('order').get();
+            console.log('[loadCategories] Firestore sorgusu tamamlandı. Belge sayısı:', snapshot.size, 'Boş mu:', snapshot.empty);
+            if (snapshot.empty) {
+                categories = initialCategories.map((cat, index) => ({
+                    ...cat,
+                    id: 'local_' + index
+                }));
+                console.log('[loadCategories] Firestore boş, lokal seed data kullanılıyor. Kategori sayısı:', categories.length);
+            } else {
+                categories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                console.log('[loadCategories] Firestore\'dan yüklendi. Kategoriler:', categories.map(c => c.name));
+            }
+        } catch (error) {
+            console.error('[loadCategories] HATA:', error.code, error.message);
+            categories = initialCategories.map((cat, index) => ({
+                ...cat,
+                id: 'local_' + index
+            }));
+        }
+        console.log('[loadCategories] populateCategorySelect çağrılıyor. categories dizisi:', categories.length, 'adet');
+        populateCategorySelect();
+        renderCategoriesList();
+    }
+
+    async function seedCategoriesIfEmpty() {
+        console.log('[seedCategories] Kontrol ediliyor...');
+        try {
+            const snapshot = await categoriesCollection.get();
+            console.log('[seedCategories] Mevcut belge sayısı:', snapshot.size);
+            if (snapshot.empty) {
+                console.log('[seedCategories] Boş! Seed data yükleniyor...');
+                const batch = db.batch();
+                initialCategories.forEach(cat => {
+                    const docRef = categoriesCollection.doc();
+                    batch.set(docRef, cat);
+                });
+                await batch.commit();
+                const freshSnapshot = await categoriesCollection.orderBy('order').get();
+                categories = freshSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                console.log('[seedCategories] Seed tamamlandı. Yüklenen:', categories.length);
+            } else {
+                console.log('[seedCategories] Zaten dolu, seed atlanıyor.');
+            }
+        } catch (error) {
+            console.error('[seedCategories] HATA:', error.code, error.message);
+        }
+    }
+
+    function populateCategorySelect() {
+        const categorySelect = document.getElementById('category');
+        console.log('[populateCategorySelect] #category elementi bulundu mu:', !!categorySelect);
+        if (!categorySelect) return;
+        const currentValue = categorySelect.value;
+        categorySelect.innerHTML = '<option value="">Kategori seçin...</option>';
+        console.log('[populateCategorySelect] Eklenecek kategori sayısı:', categories.length);
+        categories.forEach(cat => {
+            const option = document.createElement('option');
+            option.value = cat.name;
+            option.textContent = cat.name;
+            categorySelect.appendChild(option);
+            console.log('[populateCategorySelect] Option eklendi:', cat.name);
+        });
+        if (currentValue) categorySelect.value = currentValue;
+        console.log('[populateCategorySelect] Select toplam option sayısı:', categorySelect.options.length);
+    }
+
+    function renderCategoriesList() {
+        const categoriesList = document.getElementById('categoriesList');
+        if (!categoriesList) return;
+
+        if (categories.length === 0) {
+            categoriesList.innerHTML = '<p style="color: #9ca3af; font-size: 0.9rem;">Henüz kategori yok.</p>';
+            return;
+        }
+
+        categoriesList.innerHTML = categories.map(cat => `
+            <div style="display: inline-flex; align-items: center; gap: 6px; background: #fdf6b2; color: #723b13; padding: 6px 12px; border-radius: 6px; font-size: 0.9rem;">
+                <span>${cat.name}</span>
+                <span style="color: #9ca3af; font-size: 0.75rem;">#${cat.order != null ? cat.order : '-'}</span>
+                <button onclick="editCategory('${cat.id}')" style="background: none; border: none; cursor: pointer; color: #3b82f6; font-size: 0.85rem; padding: 0 2px;" title="Düzenle">&#9998;</button>
+                <button onclick="deleteCategory('${cat.id}')" style="background: none; border: none; cursor: pointer; color: #ef4444; font-size: 0.85rem; padding: 0 2px;" title="Sil">&times;</button>
+            </div>
+        `).join('');
+    }
+
+    // Kategori ekleme/düzenleme/silme
+    const categoryNameInput = document.getElementById('categoryName');
+    const categoryOrderInput = document.getElementById('categoryOrder');
+    const addCategoryBtn = document.getElementById('addCategoryBtn');
+    const cancelCategoryBtn = document.getElementById('cancelCategoryBtn');
+
+    if (addCategoryBtn) {
+        addCategoryBtn.addEventListener('click', async () => {
+            const name = categoryNameInput.value.trim();
+            const order = parseInt(categoryOrderInput.value) || 0;
+            if (!name) { alert('Kategori adı boş olamaz.'); return; }
+
+            addCategoryBtn.disabled = true;
+            addCategoryBtn.textContent = 'Kaydediliyor...';
+
+            try {
+                if (currentEditingCategoryId) {
+                    // Güncelleme — eski kategori adını bul, ürünlerde de güncelle
+                    const oldCat = categories.find(c => c.id === currentEditingCategoryId);
+                    await categoriesCollection.doc(currentEditingCategoryId).update({ name, order });
+
+                    // Ürünlerdeki kategori adını güncelle
+                    if (oldCat && oldCat.name !== name) {
+                        const itemsToUpdate = menuItems.filter(item => item.category === oldCat.name);
+                        const batch = db.batch();
+                        itemsToUpdate.forEach(item => {
+                            batch.update(menuCollection.doc(item.id), { category: name });
+                        });
+                        await batch.commit();
+                        // Lokal veriyi güncelle
+                        itemsToUpdate.forEach(item => { item.category = name; });
+                    }
+
+                    resetCategoryForm();
+                } else {
+                    // Aynı isimde kategori var mı kontrol et
+                    if (categories.some(c => c.name.toLowerCase() === name.toLowerCase())) {
+                        alert('Bu isimde bir kategori zaten var.');
+                        addCategoryBtn.disabled = false;
+                        addCategoryBtn.textContent = 'Ekle';
+                        return;
+                    }
+                    console.log('[addCategory] Firestore\'a ekleniyor:', { name, order });
+                    const docRef = await categoriesCollection.add({ name, order });
+                    console.log('[addCategory] Firestore\'a eklendi! Doc ID:', docRef.id);
+                }
+                categoryNameInput.value = '';
+                categoryOrderInput.value = '';
+                console.log('[addCategory] loadCategories çağrılıyor...');
+                await loadCategories();
+                renderAdminItems();
+            } catch (error) {
+                console.error('[addCategory] HATA:', error.code, error.message, error);
+                alert('Kategori kaydedilemedi: ' + error.message);
+            } finally {
+                addCategoryBtn.disabled = false;
+                addCategoryBtn.textContent = currentEditingCategoryId ? 'Güncelle' : 'Ekle';
+            }
+        });
+    }
+
+    if (cancelCategoryBtn) {
+        cancelCategoryBtn.addEventListener('click', resetCategoryForm);
+    }
+
+    function resetCategoryForm() {
+        currentEditingCategoryId = null;
+        if (categoryNameInput) categoryNameInput.value = '';
+        if (categoryOrderInput) categoryOrderInput.value = '';
+        if (addCategoryBtn) addCategoryBtn.textContent = 'Ekle';
+        if (cancelCategoryBtn) cancelCategoryBtn.style.display = 'none';
+    }
+
+    window.editCategory = function (id) {
+        const cat = categories.find(c => c.id === id);
+        if (!cat) return;
+        currentEditingCategoryId = id;
+        categoryNameInput.value = cat.name;
+        categoryOrderInput.value = cat.order != null ? cat.order : 0;
+        addCategoryBtn.textContent = 'Güncelle';
+        cancelCategoryBtn.style.display = 'inline-block';
+        categoryNameInput.focus();
+    };
+
+    window.deleteCategory = async function (id) {
+        const cat = categories.find(c => c.id === id);
+        if (!cat) return;
+
+        // Bu kategoride ürün var mı kontrol et
+        const itemsInCategory = menuItems.filter(item => item.category === cat.name);
+        if (itemsInCategory.length > 0) {
+            alert(`"${cat.name}" kategorisinde ${itemsInCategory.length} ürün var. Önce ürünleri başka kategoriye taşıyın veya silin.`);
+            return;
+        }
+
+        if (!confirm(`"${cat.name}" kategorisini silmek istediğinizden emin misiniz?`)) return;
+
+        try {
+            await categoriesCollection.doc(id).delete();
+            if (currentEditingCategoryId === id) resetCategoryForm();
+            await loadCategories();
+        } catch (error) {
+            console.error('Kategori silme hatası:', error);
+            alert('Kategori silinemedi.');
+        }
+    };
 
     // ==========================================
     // FIRESTORE'DAN VERİ YÜKLEME
@@ -185,6 +401,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function showPanel() {
         if (loginDiv) loginDiv.style.display = 'none';
         if (panelDiv) panelDiv.style.display = 'block';
+        populateCategorySelect();
+        renderCategoriesList();
         renderAdminItems();
     }
 
@@ -434,16 +652,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderCategories() {
         if (!categoryFilter) return;
-        const categories = [...new Set(menuItems.map(item => item.category))];
+
+        // Firestore'daki categories koleksiyonundan sıralı kategori listesini kullan
+        // Sadece en az bir ürünü olan kategorileri göster
+        const usedCategoryNames = new Set(menuItems.map(item => item.category));
+        const orderedCategories = categories
+            .filter(cat => usedCategoryNames.has(cat.name))
+            .map(cat => cat.name);
+
+        // categories koleksiyonunda olmayan ama ürünlerde bulunan kategorileri sona ekle
+        usedCategoryNames.forEach(name => {
+            if (name && !orderedCategories.includes(name)) {
+                orderedCategories.push(name);
+            }
+        });
 
         const commonBtnStyles = `margin-right: 10px; margin-bottom: 10px; padding: 8px 16px; cursor: pointer; border-radius: 20px; font-size: 0.95rem; font-weight: 500; font-family: sans-serif;`;
 
         let filterHTML = `<button class="filter-btn active" data-category="all" style="${commonBtnStyles} border: 1px solid #8b4513; background: #8b4513; color: white;">Tümü</button>`;
 
-        categories.forEach(cat => {
-            if (cat) {
-                filterHTML += `<button class="filter-btn" data-category="${cat}" style="${commonBtnStyles} border: 1px solid #8b4513; background: transparent; color: #8b4513;">${cat}</button>`;
-            }
+        orderedCategories.forEach(cat => {
+            filterHTML += `<button class="filter-btn" data-category="${cat}" style="${commonBtnStyles} border: 1px solid #8b4513; background: transparent; color: #8b4513;">${cat}</button>`;
         });
 
         categoryFilter.innerHTML = filterHTML;
@@ -553,5 +782,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
     // 4. UYGULAMAYI BAŞLAT
     // ==========================================
+    loadCategories();
     loadMenuItems();
 });

@@ -60,6 +60,21 @@
                 <button id="logoutBtn" class="button button-secondary">Logout</button>
             </div>
 
+            <!-- Kategori Yönetimi -->
+            <div class="category-management" style="margin-bottom: 2rem;">
+                <div class="form-card">
+                    <h2>Kategori Yönetimi</h2>
+                    <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+                        <input type="text" id="categoryName" placeholder="Kategori adı" style="flex: 1; padding: 0.5rem 1rem; border: 2px solid var(--coffee-200); border-radius: 0.375rem; font-size: 1rem;">
+                        <input type="number" id="categoryOrder" placeholder="Sıra" style="width: 80px; padding: 0.5rem; border: 2px solid var(--coffee-200); border-radius: 0.375rem; font-size: 1rem;" min="0" step="1">
+                        <button id="addCategoryBtn" class="button button-primary" style="white-space: nowrap;">Ekle</button>
+                        <button id="cancelCategoryBtn" class="button button-secondary" style="white-space: nowrap; display: none;">İptal</button>
+                    </div>
+                    <div id="categoriesList" style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                    </div>
+                </div>
+            </div>
+
             <div class="admin-grid">
                 <!-- Form Section -->
                 <div class="admin-form-section">
@@ -94,18 +109,9 @@
 
                             <div class="form-group">
                                 <label for="category">Kategori</label>
-                              <select id="category" name="category" required>
-                                <option value="Kendin Seç Waffle">Kendin Seç Waffle</option>
-                                <option value="Croissant">Croissant</option>
-                                <option value="İmza Tatlılar">İmza Tatlılar</option>
-                                <option value="Tatlılar">Tatlılar</option>
-                                <option value="Matcha">Matcha</option>
-                                <option value="Çaylar">Çaylar</option>
-                                <option value="Hot Coffee">Hot Coffee</option>
-                                <option value="Iced Coffee">Iced Coffee</option>
-                                <option value="Sıcaklar">Sıcaklar</option>
-                                <option value="Soğuklar">Soğuklar</option>
-                            </select>
+                                <select id="category" name="category" required>
+                                    <option value="">Kategori seçin...</option>
+                                </select>
                             </div>
 
                             <div class="form-buttons">
