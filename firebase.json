@@ -7,5 +7,23 @@
   },
   "storage": {
     "rules": "storage.rules"
+  },
+  "hosting": {
+    "public": ".",
+    "ignore": [
+      "firebase.json",
+      "firestore.rules",
+      "firestore.indexes.json",
+      "storage.rules",
+      ".firebaserc",
+      ".gitignore",
+      ".git/**",
+      ".claude/**",
+      "node_modules/**",
+      "package.json",
+      "postcss.config.js",
+      "README.md",
+      "*.md"
+    ]
   }
 }
