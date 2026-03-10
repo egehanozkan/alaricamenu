@@ -50,27 +50,96 @@ document.addEventListener('DOMContentLoaded', () => {
         { name: "Iced Caramel Latte", description: "Iced caramel latte", price: 230.0, category: "Iced Coffee", image: "" }
     ];
 
-    // Menü kontrolü: Eğer LocalStorage tamamen boşsa, bu ürünleri varsayılan olarak ekle.
-    let menuItems = JSON.parse(localStorage.getItem('coffeeShopMenu'));
-    if (!menuItems || menuItems.length === 0) {
-        // Ürünlere benzersiz birer ID atayıp kaydedelim ki admin silebilsin/düzenleyebilsin
-        menuItems = initialAlaricaMenu.map((item, index) => ({
-            ...item,
-            id: 'auto_' + Date.now() + '_' + index
-        }));
-        localStorage.setItem('coffeeShopMenu', JSON.stringify(menuItems));
-    }
-
     // --- ORTAK DURUM (STATE) DEĞİŞKENLERİ ---
+    let menuItems = [];
     let currentEditingId = null;
-    let currentImageBase64 = '';
+    let currentImageFile = null;       // Yüklenecek dosya
+    let currentImagePreviewUrl = '';   // Önizleme için URL (yeni dosya veya mevcut URL)
+
+    // Firestore referansı
+    const menuCollection = db.collection('menuItems');
 
     // --- ADMIN LİNKİNİ GİZLE/GÖSTER (Tüm sayfalar için) ---
     const adminLinks = document.querySelectorAll('.admin-link');
-    if (sessionStorage.getItem('isAdminLoggedIn') === 'true') {
-        adminLinks.forEach(link => {
-            link.style.display = 'inline-block';
-        });
+
+    // Firebase Auth durumunu dinle — tüm sayfalarda çalışır
+    auth.onAuthStateChanged(async (user) => {
+        if (user) {
+            adminLinks.forEach(link => link.style.display = 'inline-block');
+            // Admin giriş yaptığında Firestore boşsa seed data'yı yükle
+            await seedFirestoreIfEmpty();
+            // Veriyi Firestore'dan tekrar yükle (seed sonrası güncel veri)
+            await loadMenuItems();
+            // Admin sayfasındaysak paneli göster
+            if (loginDiv && panelDiv) {
+                showPanel();
+            }
+        } else {
+            adminLinks.forEach(link => link.style.display = 'none');
+            // Admin sayfasındaysak login'e dön
+            if (loginDiv && panelDiv) {
+                panelDiv.style.display = 'none';
+                loginDiv.style.display = 'flex';
+            }
+        }
+    });
+
+    // ==========================================
+    // FIRESTORE'DAN VERİ YÜKLEME
+    // ==========================================
+    async function loadMenuItems() {
+        try {
+            const snapshot = await menuCollection.get();
+            if (snapshot.empty) {
+                // Firestore boş — ziyaretçiler için lokal seed data'yı göster
+                // Firestore'a yazma işlemi sadece admin giriş yaptığında yapılacak
+                menuItems = initialAlaricaMenu.map((item, index) => ({
+                    ...item,
+                    id: 'local_' + index
+                }));
+                console.log('Firestore boş, lokal seed data gösteriliyor');
+            } else {
+                menuItems = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            }
+        } catch (error) {
+            console.error('Firestore yükleme hatası:', error);
+            // Fallback: lokal seed data
+            menuItems = initialAlaricaMenu.map((item, index) => ({
+                ...item,
+                id: 'local_' + index
+            }));
+        }
+
+        // Sayfa içeriklerini güncelle
+        if (menuGrid) {
+            renderCategories();
+            renderClientMenu();
+        }
+        if (itemsList) {
+            renderAdminItems();
+        }
+    }
+
+    // Admin giriş yaptığında Firestore boşsa seed data'yı yükle
+    async function seedFirestoreIfEmpty() {
+        try {
+            const snapshot = await menuCollection.get();
+            if (snapshot.empty) {
+                console.log('Admin giriş yaptı, Firestore\'a seed data yükleniyor...');
+                const batch = db.batch();
+                initialAlaricaMenu.forEach(item => {
+                    const docRef = menuCollection.doc();
+                    batch.set(docRef, item);
+                });
+                await batch.commit();
+                // Yüklenen verileri tekrar oku
+                const freshSnapshot = await menuCollection.get();
+                menuItems = freshSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                console.log('Seed data Firestore\'a yüklendi');
+            }
+        } catch (error) {
+            console.error('Seed data yükleme hatası:', error);
+        }
     }
 
     // ==========================================
@@ -83,67 +152,97 @@ document.addEventListener('DOMContentLoaded', () => {
     const logoutBtn = document.getElementById('logoutBtn');
     const menuForm = document.getElementById('menuForm');
     const itemsList = document.getElementById('itemsList');
-    
-    if (loginDiv && panelDiv && sessionStorage.getItem('isAdminLoggedIn') === 'true') {
-        showPanel();
-    }
 
     if (loginForm) {
-        loginForm.addEventListener('submit', (e) => {
+        loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+            const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
-            
-            if (password === 'admin123') { 
-                sessionStorage.setItem('isAdminLoggedIn', 'true');
-                showPanel();
+
+            try {
+                await auth.signInWithEmailAndPassword(email, password);
                 loginError.style.display = 'none';
                 loginForm.reset();
-                adminLinks.forEach(link => link.style.display = 'inline-block');
-            } else {
-                loginError.textContent = 'Invalid password! Please try again.';
+            } catch (error) {
+                let message = 'Giriş başarısız. Lütfen tekrar deneyin.';
+                if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+                    message = 'Geçersiz e-posta veya şifre!';
+                } else if (error.code === 'auth/too-many-requests') {
+                    message = 'Çok fazla deneme. Lütfen daha sonra tekrar deneyin.';
+                }
+                loginError.textContent = message;
                 loginError.style.display = 'block';
             }
         });
     }
 
     if (logoutBtn) {
-        logoutBtn.addEventListener('click', () => {
-            sessionStorage.removeItem('isAdminLoggedIn');
-            panelDiv.style.display = 'none';
-            loginDiv.style.display = 'flex';
-            adminLinks.forEach(link => link.style.display = 'none');
+        logoutBtn.addEventListener('click', async () => {
+            await auth.signOut();
         });
     }
 
     function showPanel() {
-        if(loginDiv) loginDiv.style.display = 'none';
-        if(panelDiv) panelDiv.style.display = 'block';
+        if (loginDiv) loginDiv.style.display = 'none';
+        if (panelDiv) panelDiv.style.display = 'block';
         renderAdminItems();
     }
 
-    // Resim Yükleme (Base64)
+    // Resim Yükleme (Firebase Storage)
     const imageInput = document.getElementById('image');
     const imagePreview = document.getElementById('imagePreview');
     const previewImage = document.getElementById('previewImage');
 
     if (imageInput) {
-        imageInput.addEventListener('change', function(e) {
+        imageInput.addEventListener('change', function (e) {
             const file = e.target.files[0];
             if (file) {
                 if (file.size > 5 * 1024 * 1024) {
-                    alert('File size must be less than 5MB.');
+                    alert('Dosya boyutu 5MB\'dan küçük olmalıdır.');
                     imageInput.value = '';
                     return;
                 }
-                const reader = new FileReader();
-                reader.onload = function(event) {
-                    currentImageBase64 = event.target.result;
-                    previewImage.src = currentImageBase64;
-                    imagePreview.style.display = 'block';
-                };
-                reader.readAsDataURL(file);
+                currentImageFile = file;
+                // Önizleme için lokal URL oluştur
+                currentImagePreviewUrl = URL.createObjectURL(file);
+                previewImage.src = currentImagePreviewUrl;
+                imagePreview.style.display = 'block';
             }
         });
+    }
+
+    // Resmi Kaldır butonu
+    const removeImageBtn = document.getElementById('removeImageBtn');
+    if (removeImageBtn) {
+        removeImageBtn.addEventListener('click', function () {
+            currentImageFile = null;
+            currentImagePreviewUrl = '__removed__'; // Özel flag: resim kaldırıldı
+            imageInput.value = '';
+            imagePreview.style.display = 'none';
+            previewImage.src = '';
+        });
+    }
+
+    // Firebase Storage'a resim yükle, URL döndür
+    async function uploadImage(file, itemId) {
+        if (!storage) throw new Error('Storage başlatılmadı');
+        const fileExt = file.name.split('.').pop();
+        const storageRef = storage.ref('menu-images/' + itemId + '.' + fileExt);
+        await storageRef.put(file);
+        return await storageRef.getDownloadURL();
+    }
+
+    // Firebase Storage'dan resim sil (URL'den referans alarak)
+    async function deleteImageByUrl(imageUrl) {
+        if (!storage || !imageUrl || !imageUrl.includes('firebasestorage')) return;
+        try {
+            const imageRef = storage.refFromURL(imageUrl);
+            await imageRef.delete();
+            console.log('Resim Storage\'dan silindi');
+        } catch (error) {
+            // Resim bulunamadıysa sessizce devam et
+            console.warn('Resim silinemedi:', error.code);
+        }
     }
 
     // Ürün Ekleme/Güncelleme
@@ -151,28 +250,79 @@ document.addEventListener('DOMContentLoaded', () => {
     const cancelBtn = document.getElementById('cancelBtn');
 
     if (menuForm) {
-        menuForm.addEventListener('submit', (e) => {
+        menuForm.addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            const newItem = {
-                id: currentEditingId || Date.now().toString(),
-                name: document.getElementById('name').value,
-                description: document.getElementById('description').value,
-                price: parseFloat(document.getElementById('price').value),
-                category: document.getElementById('category').value,
-                image: currentImageBase64
-            };
+            const submitBtn = menuForm.querySelector('button[type="submit"]');
+            const originalBtnText = submitBtn.textContent;
+            submitBtn.textContent = 'Kaydediliyor...';
+            submitBtn.disabled = true;
 
-            if (currentEditingId) {
-                const index = menuItems.findIndex(item => item.id === currentEditingId);
-                if (index !== -1) menuItems[index] = newItem;
-            } else {
-                menuItems.push(newItem);
+            try {
+                let imageUrl = currentImagePreviewUrl;
+
+                if (currentEditingId) {
+                    const existing = menuItems.find(i => i.id === currentEditingId);
+
+                    if (currentImagePreviewUrl === '__removed__') {
+                        // Resim kaldırıldı — Storage'dan sil
+                        if (existing && existing.image) {
+                            await deleteImageByUrl(existing.image);
+                        }
+                        imageUrl = '';
+                    } else if (currentImageFile) {
+                        // Yeni dosya seçildiyse eski resmi sil, yenisini yükle
+                        if (existing && existing.image) {
+                            await deleteImageByUrl(existing.image);
+                        }
+                        imageUrl = await uploadImage(currentImageFile, currentEditingId);
+                    } else {
+                        // Mevcut resmi koru
+                        imageUrl = existing ? existing.image : '';
+                    }
+
+                    const itemData = {
+                        name: document.getElementById('name').value,
+                        description: document.getElementById('description').value,
+                        price: parseFloat(document.getElementById('price').value),
+                        category: document.getElementById('category').value,
+                        image: imageUrl
+                    };
+
+                    await menuCollection.doc(currentEditingId).update(itemData);
+                    const index = menuItems.findIndex(item => item.id === currentEditingId);
+                    if (index !== -1) menuItems[index] = { id: currentEditingId, ...itemData };
+                } else {
+                    // Önce Firestore'a ekle (ID almak için)
+                    const itemData = {
+                        name: document.getElementById('name').value,
+                        description: document.getElementById('description').value,
+                        price: parseFloat(document.getElementById('price').value),
+                        category: document.getElementById('category').value,
+                        image: ''
+                    };
+
+                    const docRef = await menuCollection.add(itemData);
+
+                    // Dosya seçildiyse Storage'a yükle
+                    if (currentImageFile) {
+                        imageUrl = await uploadImage(currentImageFile, docRef.id);
+                        await menuCollection.doc(docRef.id).update({ image: imageUrl });
+                        itemData.image = imageUrl;
+                    }
+
+                    menuItems.push({ id: docRef.id, ...itemData });
+                }
+
+                resetForm();
+                renderAdminItems();
+            } catch (error) {
+                console.error('Ürün kaydetme hatası:', error);
+                alert('Ürün kaydedilemedi. Lütfen tekrar deneyin.');
+            } finally {
+                submitBtn.textContent = originalBtnText;
+                submitBtn.disabled = false;
             }
-
-            localStorage.setItem('coffeeShopMenu', JSON.stringify(menuItems));
-            resetForm();
-            renderAdminItems();
         });
     }
 
@@ -181,12 +331,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function resetForm() {
-        if(!menuForm) return;
+        if (!menuForm) return;
         menuForm.reset();
         currentEditingId = null;
-        currentImageBase64 = '';
-        formTitle.textContent = 'Add New Item';
-        menuForm.querySelector('button[type="submit"]').textContent = 'Add Item';
+        currentImageFile = null;
+        currentImagePreviewUrl = '';
+        formTitle.textContent = 'Yeni Ürün Ekle';
+        menuForm.querySelector('button[type="submit"]').textContent = 'Ürün Ekle';
         cancelBtn.style.display = 'none';
         imagePreview.style.display = 'none';
         previewImage.src = '';
@@ -199,17 +350,16 @@ document.addEventListener('DOMContentLoaded', () => {
         itemCount.textContent = menuItems.length;
 
         if (menuItems.length === 0) {
-            itemsList.innerHTML = '<p class="no-items" style="text-align:center; padding: 20px; color: gray;">No items yet. Add your first item!</p>';
+            itemsList.innerHTML = '<p class="no-items" style="text-align:center; padding: 20px; color: gray;">Hiç ürün yok. İlk ürünü ekle!</p>';
             return;
         }
 
-        // Listeyi en son eklenen en üstte görünecek şekilde tersine çeviriyoruz (isteğe bağlı)
         const reversedItems = [...menuItems].reverse();
 
         itemsList.innerHTML = reversedItems.map(item => `
             <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 15px; margin-bottom: 15px; display: flex; gap: 15px; background: white; align-items: center;">
                 ${item.image ? `<img src="${item.image}" alt="${item.name}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px;">` : `<div style="width: 80px; height: 80px; background: #f3f4f6; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #9ca3af; text-align:center; font-size:12px;">No Image</div>`}
-                
+
                 <div style="flex: 1;">
                     <div style="display: flex; justify-content: space-between; align-items: start;">
                         <h3 style="margin: 0 0 5px 0; font-size: 1.1rem; color: #374151;">${item.name}</h3>
@@ -220,15 +370,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
 
                 <div style="display: flex; flex-direction: column; gap: 8px;">
-                    <button onclick="editItem('${item.id}')" style="background: #3b82f6; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85rem;">Edit</button>
-                    <button onclick="deleteItem('${item.id}')" style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85rem;">Delete</button>
+                    <button onclick="editItem('${item.id}')" style="background: #3b82f6; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85rem;">Düzenle</button>
+                    <button onclick="deleteItem('${item.id}')" style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85rem;">Sil</button>
                 </div>
             </div>
         `).join('');
     }
 
     // Global Düzenleme / Silme Fonksiyonları
-    window.editItem = function(id) {
+    window.editItem = function (id) {
         const item = menuItems.find(i => i.id === id);
         if (!item) return;
 
@@ -236,156 +386,151 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('description').value = item.description;
         document.getElementById('price').value = item.price;
         document.getElementById('category').value = item.category;
-        
+
         if (item.image) {
-            currentImageBase64 = item.image;
+            currentImageFile = null;  // Yeni dosya seçilmedi, mevcut URL korunacak
+            currentImagePreviewUrl = item.image;
             previewImage.src = item.image;
             imagePreview.style.display = 'block';
         } else {
-            currentImageBase64 = '';
+            currentImageFile = null;
+            currentImagePreviewUrl = '';
             imagePreview.style.display = 'none';
         }
 
         currentEditingId = item.id;
-        formTitle.textContent = 'Edit Item';
-        menuForm.querySelector('button[type="submit"]').textContent = 'Update Item';
+        formTitle.textContent = 'Ürünü Düzenle';
+        menuForm.querySelector('button[type="submit"]').textContent = 'Güncelle';
         cancelBtn.style.display = 'inline-block';
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
-    window.deleteItem = function(id) {
-        if (confirm('Are you sure you want to delete this item?')) {
-            menuItems = menuItems.filter(item => item.id !== id);
-            localStorage.setItem('coffeeShopMenu', JSON.stringify(menuItems));
-            if (currentEditingId === id) resetForm();
-            renderAdminItems();
+    window.deleteItem = async function (id) {
+        if (confirm('Bu ürünü silmek istediğinizden emin misiniz?')) {
+            try {
+                // Önce ürünün resmini Storage'dan sil
+                const item = menuItems.find(i => i.id === id);
+                if (item && item.image) {
+                    await deleteImageByUrl(item.image);
+                }
+                await menuCollection.doc(id).delete();
+                menuItems = menuItems.filter(item => item.id !== id);
+                if (currentEditingId === id) resetForm();
+                renderAdminItems();
+            } catch (error) {
+                console.error('Silme hatası:', error);
+                alert('Ürün silinemedi. Lütfen tekrar deneyin.');
+            }
         }
     };
 
+    // ==========================================
+    // 2. MÜŞTERİ MENÜ SAYFASI İŞLEMLERİ (menu.html)
+    // ==========================================
+    const menuGrid = document.getElementById('menuGrid');
+    const categoryFilter = document.getElementById('categoryFilter');
 
-   // ==========================================
-        // 2. MÜŞTERİ MENÜ SAYFASI İŞLEMLERİ (menu.html)
-        // ==========================================
-        const menuGrid = document.getElementById('menuGrid');
-        const categoryFilter = document.getElementById('categoryFilter');
+    let currentFilter = 'all';
 
-        if (menuGrid) {
-            let currentFilter = 'all';
+    function renderCategories() {
+        if (!categoryFilter) return;
+        const categories = [...new Set(menuItems.map(item => item.category))];
 
-            function renderCategories() {
-                if (!categoryFilter) return;
-                const categories = [...new Set(menuItems.map(item => item.category))];
+        const commonBtnStyles = `margin-right: 10px; margin-bottom: 10px; padding: 8px 16px; cursor: pointer; border-radius: 20px; font-size: 0.95rem; font-weight: 500; font-family: sans-serif;`;
 
-                // --- GÜNCELLEME BAŞLANGICI ---
-                // Tüm butonlar için ortak font ve padding stilleri tanımlayalım
-                const commonBtnStyles = `margin-right: 10px; margin-bottom: 10px; padding: 8px 16px; cursor: pointer; border-radius: 20px; font-size: 0.95rem; font-weight: 500; font-family: sans-serif;`;
+        let filterHTML = `<button class="filter-btn active" data-category="all" style="${commonBtnStyles} border: 1px solid #8b4513; background: #8b4513; color: white;">Tümü</button>`;
 
-                // Önce 'Tümü' butonunu ekle (Başlangıçta aktif ve dolu arka planlı)
-                let filterHTML = `<button class="filter-btn active" data-category="all" style="${commonBtnStyles} border: 1px solid #8b4513; background: #8b4513; color: white;">Tümü</button>`;
-                
-                // Sonra diğer kategorileri ekle (Şeffaf arka planlı)
-                categories.forEach(cat => {
-                    if(cat) {
-                        filterHTML += `<button class="filter-btn" data-category="${cat}" style="${commonBtnStyles} border: 1px solid #8b4513; background: transparent; color: #8b4513;">${cat}</button>`;
-                    }
-                });
-                // --- GÜNCELLEME BİTİŞİ ---
-                
-                categoryFilter.innerHTML = filterHTML;
-
-                const filterBtns = categoryFilter.querySelectorAll('.filter-btn');
-                filterBtns.forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        // --- TIKLAMA OLAYINDAKİ GÜNCELLEME ---
-                        // Tüm butonlardan aktif sınıfını kaldır ve pasif stilleri açıkça uygula
-                        filterBtns.forEach(b => {
-                            b.classList.remove('active');
-                            b.style.background = 'transparent';
-                            b.style.color = '#8b4513';
-                            // Font özelliklerini tutarlı kılmak için burada da belirtmeliyiz
-                            b.style.fontSize = '0.95rem';
-                            b.style.fontWeight = '500';
-                            b.style.fontFamily = 'sans-serif';
-                        });
-                        
-                        // Tıklanan butona aktif sınıfını ekle ve aktif stilleri açıkça uygula
-                        e.target.classList.add('active');
-                        e.target.style.background = '#8b4513';
-                        e.target.style.color = 'white';
-                        // Font özelliklerini tutarlı kılmak için burada da belirtmeliyiz
-                        e.target.style.fontSize = '0.95rem';
-                        e.target.style.fontWeight = '500';
-                        e.target.style.fontFamily = 'sans-serif';
-                        
-                        currentFilter = e.target.getAttribute('data-category');
-                        renderClientMenu();
-                    });
-                });
+        categories.forEach(cat => {
+            if (cat) {
+                filterHTML += `<button class="filter-btn" data-category="${cat}" style="${commonBtnStyles} border: 1px solid #8b4513; background: transparent; color: #8b4513;">${cat}</button>`;
             }
+        });
 
-            // Müşteri Menüsünü Ekrana Çizme (Bu fonksiyon aynı kalacak)
-            function renderClientMenu() {
-                if (menuItems.length === 0) {
-                    menuGrid.innerHTML = '<p style="text-align:center; width: 100%; color: gray; grid-column: 1 / -1; padding: 40px;">Our menu is currently empty. Please check back later!</p>';
-                    return;
-                }
+        categoryFilter.innerHTML = filterHTML;
 
-                const filteredItems = currentFilter === 'all' 
-                    ? menuItems 
-                    : menuItems.filter(item => item.category === currentFilter);
+        const filterBtns = categoryFilter.querySelectorAll('.filter-btn');
+        filterBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                filterBtns.forEach(b => {
+                    b.classList.remove('active');
+                    b.style.background = 'transparent';
+                    b.style.color = '#8b4513';
+                    b.style.fontSize = '0.95rem';
+                    b.style.fontWeight = '500';
+                    b.style.fontFamily = 'sans-serif';
+                });
 
-                if (filteredItems.length === 0) {
-                    menuGrid.innerHTML = '<p style="text-align:center; width: 100%; color: gray; grid-column: 1 / -1; padding: 40px;">No items found in this category.</p>';
-                    return;
-                }
+                e.target.classList.add('active');
+                e.target.style.background = '#8b4513';
+                e.target.style.color = 'white';
+                e.target.style.fontSize = '0.95rem';
+                e.target.style.fontWeight = '500';
+                e.target.style.fontFamily = 'sans-serif';
 
-                menuGrid.innerHTML = filteredItems.map(item => `
-                    <div class="menu-item-card" style="border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; background: white; box-shadow: 0 4px 6px rgba(0,0,0,0.05); transition: transform 0.2s;">
-                        ${item.image ? `<img src="${item.image}" alt="${item.name}" style="width: 100%; height: 200px; object-fit: cover;">` : `<div style="width: 100%; height: 200px; background: #f3f4f6; display: flex; align-items: center; justify-content: center; color: #9ca3af;">No Image</div>`}
-                        <div style="padding: 20px;">
-                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
-                                <h3 style="margin: 0; font-size: 1.25rem; color: #374151;">${item.name}</h3>
-                                <span style="font-weight: bold; color: #8b4513; font-size: 1.2rem;">${item.price.toFixed(2)} TL</span>
-                            </div>
-                            <p style="margin: 0 0 15px 0; font-size: 0.95rem; color: #6b7280; line-height: 1.5;">${item.description}</p>
-                            <span style="background: #fdf6b2; color: #723b13; padding: 4px 10px; border-radius: 6px; font-size: 0.85rem; font-weight: 500;">${item.category}</span>
-                        </div>
-                    </div>
-                `).join('');
-                
-                menuGrid.style.display = 'grid';
-                menuGrid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(300px, 1fr))';
-                menuGrid.style.gap = '25px';
-                menuGrid.style.marginTop = '30px';
-            }
+                currentFilter = e.target.getAttribute('data-category');
+                renderClientMenu();
+            });
+        });
+    }
 
-            renderCategories();
-            renderClientMenu();
+    function renderClientMenu() {
+        if (!menuGrid) return;
+
+        if (menuItems.length === 0) {
+            menuGrid.innerHTML = '<p style="text-align:center; width: 100%; color: gray; grid-column: 1 / -1; padding: 40px;">Menümüz şu anda boş. Lütfen daha sonra tekrar kontrol edin!</p>';
+            return;
         }
-        // ==========================================
+
+        const filteredItems = currentFilter === 'all'
+            ? menuItems
+            : menuItems.filter(item => item.category === currentFilter);
+
+        if (filteredItems.length === 0) {
+            menuGrid.innerHTML = '<p style="text-align:center; width: 100%; color: gray; grid-column: 1 / -1; padding: 40px;">Bu kategoride ürün bulunamadı.</p>';
+            return;
+        }
+
+        menuGrid.innerHTML = filteredItems.map(item => `
+            <div class="menu-item-card" style="border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; background: white; box-shadow: 0 4px 6px rgba(0,0,0,0.05); transition: transform 0.2s;">
+                ${item.image ? `<img src="${item.image}" alt="${item.name}" style="width: 100%; height: 200px; object-fit: cover;">` : `<div style="width: 100%; height: 200px; background: #f3f4f6; display: flex; align-items: center; justify-content: center; color: #9ca3af;">No Image</div>`}
+                <div style="padding: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                        <h3 style="margin: 0; font-size: 1.25rem; color: #374151;">${item.name}</h3>
+                        <span style="font-weight: bold; color: #8b4513; font-size: 1.2rem;">${item.price.toFixed(2)} TL</span>
+                    </div>
+                    <p style="margin: 0 0 15px 0; font-size: 0.95rem; color: #6b7280; line-height: 1.5;">${item.description}</p>
+                    <span style="background: #fdf6b2; color: #723b13; padding: 4px 10px; border-radius: 6px; font-size: 0.85rem; font-weight: 500;">${item.category}</span>
+                </div>
+            </div>
+        `).join('');
+
+        menuGrid.style.display = 'grid';
+        menuGrid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(300px, 1fr))';
+        menuGrid.style.gap = '25px';
+        menuGrid.style.marginTop = '30px';
+    }
+
+    // ==========================================
     // 3. YUKARI ÇIK BUTONU (SCROLL TO TOP)
     // ==========================================
     const scrollTopBtn = document.createElement('button');
     scrollTopBtn.id = 'scrollToTopBtn';
-    scrollTopBtn.innerHTML = '↑'; // Yukarı ok sembolü
+    scrollTopBtn.innerHTML = '↑';
     document.body.appendChild(scrollTopBtn);
 
-    // Ekranda ne kadar aşağı inildiğini kontrol et
     window.addEventListener('scroll', () => {
         if (window.scrollY > 300) {
-            scrollTopBtn.style.display = 'flex'; // 300px aşağı inince göster
+            scrollTopBtn.style.display = 'flex';
         } else {
-            scrollTopBtn.style.display = 'none'; // Üstteyken gizle
+            scrollTopBtn.style.display = 'none';
         }
     });
-// Tıklanınca özel animasyon ile yavaşça yukarı kaydır
+
     scrollTopBtn.addEventListener('click', () => {
-        // Kayma süresi (Milisaniye cinsinden. 1000 = 1 saniye. İstediğin gibi artırıp azaltabilirsin)
-        const duration = 800; 
+        const duration = 800;
         const startPosition = window.scrollY;
         const startTime = performance.now();
 
-        // İvmelenme formülü (Önce yavaş hızlanır, ortada hızlanır, tepeye yaklaşırken yavaşlar)
         function easeInOutQuad(t) {
             return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
         }
@@ -404,4 +549,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         requestAnimationFrame(animation);
     });
-    });
+
+    // ==========================================
+    // 4. UYGULAMAYI BAŞLAT
+    // ==========================================
+    loadMenuItems();
+});
