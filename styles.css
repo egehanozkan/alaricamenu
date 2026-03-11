@@ -8,16 +8,16 @@ html {
 }
 
 :root {
-    --coffee-50: #faf7f2;
-    --coffee-100: #f5ede5;
-    --coffee-200: #e8d5c4;
-    --coffee-300: #dab5a0;
-    --coffee-400: #c9927d;
-    --coffee-500: #b8705a;
-    --coffee-600: #8b5a47;
-    --coffee-700: #6d463a;
-    --coffee-800: #56372d;
-    --coffee-900: #442b23;
+    --coffee-50: #faf7f2;/*İç arka plan rengi*/
+    --coffee-100: #f5ede5;/**/
+    --coffee-200: #e8d5c4;/**/
+    --coffee-300: #dab5a0;/**/
+    --coffee-400: #c9927d;/**/
+    --coffee-500: #b8705a;/**/
+    --coffee-600: #8b5a47;/*Seçili olan menü veya anasayfa rengi*/
+    --coffee-700: #6d463a;/*Elle seçilmiş yazısı rengi*/
+    --coffee-800: #8C100E;/*Üst label ana renk*/
+    --coffee-900: #442b23;/*Menümüz ana rengi*/
 }
 
 body {
@@ -767,4 +767,16 @@ img {
         bottom: 20px;
         right: 20px;
     }
+}
+
+.nav-logo {
+    height: 32px; /* Logonun büyüklüğünü bu değerle oynayarak ayarlayabilirsin */
+    width: auto;
+    margin-right: 8px; /* Yazıyla logo arasına biraz boşluk bırakır */
+    vertical-align: middle; /* Logoyu "Alarica" yazısıyla yan yana ortalar */
+}
+
+.nav-ad {
+    height: 36px; /* Bu değeri AAd görselinin duruşuna göre büyütüp küçültebilirsin */
+    width: auto;
 }
