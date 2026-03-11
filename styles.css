@@ -27,6 +27,17 @@ body {
     line-height: 1.6;
 }
 
+/* Self-Service Notice Bar */
+.self-service-bar {
+    background-color: var(--coffee-800);
+    color: var(--coffee-50);
+    text-align: center;
+    padding: 10px 16px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+}
+
 /* Navigation */
 .navbar {
     background-color: var(--coffee-800);
